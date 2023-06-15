@@ -7,22 +7,29 @@ package android.src.main.java.io.flutter.plugins.webviewflutter;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.view.View;
+import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import io.flutter.Log;
 import io.flutter.plugin.common.BinaryMessenger;
 import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
 import io.flutter.plugin.platform.PlatformView;
+
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +84,43 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
     public void onProgressChanged(WebView view, int progress) {
       flutterWebViewClient.onLoadingProgress(progress);
     }
+
+    private final MethodChannel methodChannel;
+    private ValueCallback<Uri[]> callback;
+
+    FlutterWebChromeClient(MethodChannel methodChannel) {
+      this.methodChannel = methodChannel;
+    }
+
+    @Override
+    public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback, FileChooserParams fileChooserParams) {
+      callback = filePathCallback;
+      methodChannel.invokeMethod("onShowFileChooser", null, new Result() {
+        @Override
+        public void success(@Nullable Object result) {
+          Log.d("FlutterWebView", "onShowFileChooser success " + result);
+          if (result != null) {
+            callback.onReceiveValue(new Uri[]{Uri.fromFile(new File(result.toString()))});
+          } else {
+            callback.onReceiveValue(null);
+          }
+          callback = null;
+        }
+
+        @Override
+        public void error(String errorCode, @Nullable String errorMessage, @Nullable Object errorDetails) {
+          Log.e("FlutterWebView", "onShowFileChooser errorCode = " + errorCode + " ,errorMessage = " + errorMessage);
+        }
+
+        @Override
+        public void notImplemented() {
+          Log.e("FlutterWebView", "onShowFileChooser notImplemented");
+        }
+      });
+      return true;
+    }
   }
+
 
   @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
   @SuppressWarnings("unchecked")
@@ -108,11 +151,11 @@ public class FlutterWebView implements PlatformView, MethodCallHandler {
 
     // Multi windows is set with FlutterWebChromeClient by default to handle internal bug: b/159892679.
     webView.getSettings().setSupportMultipleWindows(true);
-    webView.setWebChromeClient(new FlutterWebChromeClient());
 
     methodChannel = new MethodChannel(messenger, "plugins.flutter.io/webview_" + id);
     methodChannel.setMethodCallHandler(this);
 
+    webView.setWebChromeClient(new FlutterWebChromeClient(methodChannel));
     flutterWebViewClient = new FlutterWebViewClient(methodChannel);
     Map<String, Object> settings = (Map<String, Object>) params.get("settings");
     if (settings != null) applySettings(settings);
