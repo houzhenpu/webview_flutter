@@ -49,7 +49,7 @@ when hybrid composition is used [flutter/issues/75667](https://github.com/flutte
 
 ## 1.0.3
 
-* Update android compileSdkVersion to 29.
+* Update android compileSdkVersion to 31.
 
 ## 1.0.2
 

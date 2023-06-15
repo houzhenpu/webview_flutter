@@ -2,13 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-package android.src.main.java.io.flutter.plugins.webviewflutter;
+package io.flutter.plugins.webviewflutter;
 
 import android.os.Handler;
 import android.os.Looper;
 import android.webkit.JavascriptInterface;
-import io.flutter.plugin.common.MethodChannel;
+
 import java.util.HashMap;
+
+import io.flutter.plugin.common.MethodChannel;
 
 /**
  * Added as a JavaScript interface to the WebView for any JavaScript channel that the Dart code sets
